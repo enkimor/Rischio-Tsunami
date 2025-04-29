@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rischio Tsunami - Comune di Policoro</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      background-image: url('img/sfondo-app.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: #333;
+    }
+
+    header {
+      background-color: rgba(0, 68, 204, 0.9);
+      color: white;
+      padding: 10px 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    main {
+      padding: 20px;
+    }
+
+    #map {
+      height: 500px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    #menu {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    #menu button {
+      display: block;
+      margin: 5px 0;
+      padding: 10px;
+      background: #0044cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    #menu button:hover {
+      background: #003399;
+      transform: scale(1.05);
+    }
+
+    #notifica {
+      display: none;
+      background-color: #ffcc00;
+      color: black;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      border-radius: 5px;
+      margin-top: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    #legenda {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    #legenda ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #legenda li {
+      margin: 5px 0;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      background-color: #0044cc;
+      color: white;
+      padding: 10px;
+      margin-top: 20px;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    footer a {
+      color: white;
+      text-decoration: underline;
+      font-weight: bold;
+      margin: 0 10px;
+    }
+
+    footer a:hover {
+      color: #ffcc00;
+    }
+  </style>
+</head>
+<body>
+  <header>
+  
+    <h1>🌊 Rischio Tsunami - Comune di Policoro</h1>
+  </header>
+
+  <!-- Sezione "Cosa Fare" migliorata -->
+  <section id="guida" style="padding: 20px; text-align: center;">
+    <button id="toggleGuida" onclick="toggleGuida()" aria-label="Mostra o Nascondi Cosa Fare" style="margin: auto;">
+      <img src="img/info-icon.png" alt="Info" style="height: 20px; vertical-align: middle;"> Cosa Fare in Caso di Tsunami
+    </button>
+    <div id="contenutoGuida" style="display: none; margin-top: 20px;">
+      <ul style="text-align: left; display: inline-block;">
+        <li>Raggiungi immediatamente le aree di attesa segnalate sulla mappa.</li>
+        <li>Segui gli itinerari di evacuazione indicati.</li>
+        <li>Non utilizzare veicoli privati per evitare congestioni.</li>
+        <li>Ascolta le comunicazioni ufficiali della Protezione Civile.</li>
+        <li>Non tornare nelle zone a rischio fino a quando non viene dichiarato sicuro.</li>
+      </ul>
+    </div>
+  </section>
+
+  <main>
+    <section id="mappa">
+      <h2 style="text-align: center; margin-bottom: 10px;">Mappa Sicurezza</h2>
+      <p style="text-align: center;">Visualizza gli itinerari obbligatori di evacuazione sulla mappa.</p>
+      <div id="map"></div>
+    </section>
+    <div id="menu">
+      <button onclick="avviaSimulazioneMaremoto()">Avvia Simulazione Maremoto</button>
+      <button onclick="tracciaPosizioneUtente()">Traccia Posizione</button>
+      <button onclick="mostraNotifica()">Mostra Notifica</button>
+      <a href="docs/piano-evacuazione.pdf" download>
+        <button>Scarica Piano di Evacuazione</button>
+      </a>
+      <button onclick="toggleAudio()">Attiva/Disattiva Audio</button>
+      <input type="text" id="searchInput" placeholder="Cerca una strada" />
+      <button onclick="cercaStrada()">Cerca</button>
+    </div>
+    <div id="notifica">
+      ⚠️ Allerta Tsunami: Segui gli itinerari di evacuazione!
+    </div>
+    <div id="legenda">
+      <h3>Legenda</h3>
+      <ul>
+        <li><span style="color: blue;">●</span> Itinerari di evacuazione</li>
+        <li><span style="color: green;">●</span> Aree di attesa</li>
+        <li><span style="color: red;">●</span> Centri di emergenza</li>
+      </ul>
+    </div>
+  </main>
+
+  <!-- Elemento audio per l'alert sonoro -->
+  <audio id="alertAudio" src="audio/alert-sound.mp3" preload="auto"></audio>
+
+  <footer>
+  <p>&copy; 2025 Protezione Civile Regione Basilicata</p>
+  <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+    <img src="img/logo-protezione-civile.png" alt="Logo Protezione Civile" style="height: 40px;">
+    <div>
+      <a href="https://protezionecivile.regione.basilicata.it" target="_blank">Protezione Civile Basilicata</a>
+      <a href="https://www.ingv.it/" target="_blank">INGV</a>
+      <a href="https://sgi2.isprambiente.it/tsunamimap/" target="_blank">TsunamiMap</a>
+    </div>
+  </div>
+</footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
+
